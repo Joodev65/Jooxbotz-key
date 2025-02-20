@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JooPedia Topup Online</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            position: absolute;
+            top: 10px;
+            left: 15px;
+        }
+
+        .header img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            border-radius: 5px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .container {
+            margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            display: block;
+            width: 70%;
+            max-width: 250px;
+            margin: 8px auto;
+            padding: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .input-field {
+            width: 70%;
+            max-width: 250px;
+            padding: 8px;
+            margin: 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .order-btn {
+            background-color: #28a745;
+            margin-top: 15px;
+        }
+
+        .order-btn:hover {
+            background-color: #1e7e34;
+        }
+
+        .info-box {
+            background-color: #1d1d1d;
+            padding: 15px;
+            margin: 20px auto;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .contact-btn {
+            display: block;
+            width: 80%;
+            max-width: 250px;
+            padding: 10px;
+            margin: 10px auto;
+            font-size: 16px;
+            color: white;
+            background-color: #ff5722;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .contact-btn:hover {
+            background-color: #e64a19;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <img src="https://img5.pixhost.to/images/3049/569507536_skyzopedia.jpg" alt="JooPedia Logo">
+        <h1>JooPedia Topup Online!</h1>
+    </div>
+
+    <div class="container">
+        <h2>Pilih Game</h2>
+        <button class="btn" onclick="selectGame('Free Fire')">Free Fire</button>
+        <button class="btn" onclick="selectGame('Mobile Legends')">Mobile Legends</button>
+
+        <div id="form-section" class="hidden">
+            <h2 id="game-title"></h2>
+            <input type="text" id="player-id" class="input-field" placeholder="Masukkan ID Pemain">
+            
+            <select id="diamond-amount" class="input-field">
+                <option value="" disabled selected>Pilih Jumlah Diamond</option>
+            </select>
+
+            <select id="payment-method" class="input-field">
+                <option value="" disabled selected>Pilih Pembayaran</option>
+                <option value="Dana">Dana</option>
+                <option value="Gopay">Gopay</option>
+                <option value="Qris">QRIS</option>
+                <option value="BCA">BCA</option>
+            </select>
+
+            <button class="btn order-btn" onclick="orderNow()">Order Now</button>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>Tentang Kami</h3>
+        <p>JooPedia atau Joohosting adalah store yang menyediakan semua kebutuhan hosting, game, store, dan lainnya! 
+            Ada kendala atau ingin konsultasi? Hubungi kami!</p>
+        <h3>Contact Center</h3>
+        <button class="contact-btn" onclick="window.location.href='https://wa.me/+6283151020504'">Whatsapp / Contact</button>
+        <button class="contact-btn" onclick="window.location.href='https://whatsapp.com/channel/0029Vb2yQSnCMY0Lf3JyYZ2s'">Testimoni</button>
+    </div>
+
+    <script>
+        let selectedGame = "";
+
+        const priceList = {
+            "Free Fire": {
+                "70 Diamond": 10000,
+                "100 Diamond": 15000,
+                "140 Diamond": 20000,
+                "150 Diamond": 25000,
+                "200 Diamond": 30000,
+                "250 Diamond": 35000,
+                "500 Diamond": 70000,
+                "720 Diamond": 90000,
+                "Mingguan Membership": 30000,
+                "Bulanan Membership": 85000
+            },
+            "Mobile Legends": {
+                "50 Diamond": 15000,
+                "80 Diamond": 25000,
+                "100 Diamond": 35000,
+                "150 Diamond": 45000,
+                "210 Diamond": 60000,
+                "301 Diamond": 80000,
+                "Weekly Diamond Pass": 28000,
+                "Weekly Diamond Pass x3": 85000
+            }
+        };
+
+        function selectGame(game) {
+            selectedGame = game;
+            document.getElementById("game-title").innerText = "Top Up " + game;
+            document.getElementById("form-section").classList.remove("hidden");
+
+            let diamondSelect = document.getElementById("diamond-amount");
+            diamondSelect.innerHTML = '<option value="" disabled selected>Pilih Jumlah Diamond</option>';
+
+            for (let item in priceList[game]) {
+                let option = document.createElement("option");
+                option.value = item;
+                option.textContent = `${item} - Rp ${priceList[game][item].toLocaleString()}`;
+                diamondSelect.appendChild(option);
+            }
+        }
+
+        function orderNow() {
+            let playerId = document.getElementById("player-id").value;
+            let diamondAmount = document.getElementById("diamond-amount").value;
+            let paymentMethod = document.getElementById("payment-method").value;
+
+            if (!playerId || !diamondAmount || !paymentMethod) {
+                alert("Silakan isi ID Pemain, Pilih Diamond, dan Metode Pembayaran!");
+                return;
+            }
+
+            let price = priceList[selectedGame][diamondAmount];
+            let message = `Halo, saya ingin top-up ${selectedGame}.\n\n🆔 ID Pemain: ${playerId}\n💎 Jumlah Diamond: ${diamondAmount}\n💰 Harga: Rp ${price.toLocaleString()}\n🛒 Pembayaran: ${paymentMethod}`;
+            let waLink = `https://wa.me/+6283151020504?text=${encodeURIComponent(message)}`;
+
+            window.location.href = waLink;
+        }
+    </script>
+
+</body>
+</html>
