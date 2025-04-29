@@ -1,0 +1,30 @@
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.video-container {
+  text-align: center;
+}
+
+#video-link {
+  font-size: 18px;
+  margin-top: 20px;
+}
+
+#download-link {
+  font-size: 20px;
+  margin-top: 20px;
+  color: #00f;
+  text-decoration: none;
+}
+
+#download-link:hover {
+  text-decoration: underline;
+}
