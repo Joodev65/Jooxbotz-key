@@ -185,49 +185,86 @@ class AliciaAI {
         if (el && el.parentNode) el.parentNode.removeChild(el);
     }
 
-    async sendMessage(text) {
-        this.state.isLoading = true;
-        this.elements.sendBtn.classList.add('loading');
-        const loadingEl = this.appendLoadingMessage();
+async sendMessage(text) {
+    this.state.isLoading = true;
+    this.elements.sendBtn.classList.add('loading');
+    const loadingEl = this.appendLoadingMessage();
 
-        const model = this.state.selectedModel || 'chatgpt';
+    const model = this.state.selectedModel || 'chatgpt';
 
-        try {
-            if (model === 'chatgpt') {
-                const question = text;
-                const { data } = await axios.post(
-                    'https://aliicia.my.id/api/chatgpt',
-                    { message: `${question}` },
-                    { headers: { 'Content-Type': 'application/json' } }
-                );
+    try {
+        if (model === 'chatgpt') {
+            const question = text;
+            const response = await axios.post(
+                'https://aliicia.my.id/api/chatgpt',
+                { message: `${question}` },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
+            );
 
-                let answer = data?.response || 'Failed to get response.';
-                this.displayAIResponse(answer);
-
-            } else if (model === 'wormgpt') {
-                const q = text;
-                const { data } = await axios.post(
-                    'https://aliicia.my.id/api/wormgpt',
-                    { message: `${q}` },
-                    { headers: { 'Content-Type': 'application/json' } }
-                );
-
-                let ans = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Gagal mendapatkan jawaban.';
-                this.displayAIResponse(ans);
-            } else {
-                this.displayAIResponse("Model not supported.");
+            console.log('ChatGPT raw response:', response);
+            const data = response.data;
+            let answer = data?.response ?? data?.reply ?? data?.message ?? data?.result ?? null;
+            if (!answer) {
+                if (data && typeof data === 'object') {
+                    answer = Object.values(data).find(v => typeof v === 'string') || null;
+                }
             }
 
-        } catch (err) {
-            console.error('Error fetching AI:', err);
-            this.displayAIResponse('Failed to connect to AI. Please try again later.');
-        } finally {
-            this.state.isLoading = false;
-            this.elements.sendBtn.classList.remove('loading');
-            this.removeElement(loadingEl);
-            this.saveChatHistory();
+            if (!answer) {
+                console.error('Unexpected ChatGPT response shape:', data);
+                this.displayAIResponse('Gagal mendapatkan jawaban lengkap dari ChatGPT. Lihat console untuk detail.');
+            } else {
+                this.displayAIResponse(answer);
+            }
+
+        } else if (model === 'wormgpt') {
+            const q = text;
+            const response = await axios.post(
+                'https://aliicia.my.id/api/wormgpt',
+                { message: `${q}` },
+                { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
+            );
+
+            console.log('WormGPT raw response:', response);
+            const data = response.data;
+            let ans = data?.candidates?.[0]?.content?.parts?.[0]?.text
+                      ?? data?.response ?? data?.result ?? null;
+            if (!ans) {
+                if (data && typeof data === 'object') {
+                    ans = Object.values(data).find(v => typeof v === 'string') || null;
+                }
+            }
+
+            if (!ans) {
+                console.error('Unexpected WormGPT response shape:', data);
+                this.displayAIResponse('Gagal mendapatkan jawaban lengkap dari WormGPT. Lihat console untuk detail.');
+            } else {
+                this.displayAIResponse(ans);
+            }
+
+        } else {
+            this.displayAIResponse('Model tidak didukung: ' + model);
         }
+
+    } catch (err) {
+        console.error('Error fetching AI:', err);         
+        let msg = 'Terjadi kesalahan koneksi.';
+        if (err.response) {
+            msg = `Server error ${err.response.status}: ${JSON.stringify(err.response.data).slice(0, 300)}`;
+        } else if (err.request) {
+            msg = 'Tidak ada respons dari server. Periksa koneksi atau CORS.';
+        } else if (err.message) {
+            msg = err.message;
+        }
+        this.displayAIResponse(`${msg}`);
+        this.showToast(msg, 'error');
+    } finally {
+        this.state.isLoading = false;
+        this.elements.sendBtn.classList.remove('loading');
+        this.removeElement(loadingEl);
+        this.saveChatHistory();
     }
+}
      
     displayAIResponse(markdownText) {
         const el = document.createElement('div');
