@@ -7,7 +7,8 @@ class AliciaAI {
             voiceToggle: document.getElementById('voice-toggle'),
             themeToggle: document.getElementById('theme-toggle'),
             clearChat: document.getElementById('clear-chat'),
-            sendBtn: document.getElementById('send-btn'),            
+            sendBtn: document.getElementById('send-btn'),
+            imageGenBtn: document.getElementById('image-gen-btn'),
             charCounter: document.querySelector('.char-counter'),
             welcomeMessage: document.getElementById('welcome-message'),
             modelSelect: document.getElementById('model-select'),
@@ -46,7 +47,8 @@ class AliciaAI {
         });
         this.elements.voiceToggle.addEventListener('click', () => this.toggleVoice());
         this.elements.themeToggle.addEventListener('click', () => this.toggleTheme());
-        this.elements.clearChat.addEventListener('click', () => this.clearChat());        
+        this.elements.clearChat.addEventListener('click', () => this.clearChat());
+        this.elements.imageGenBtn.addEventListener('click', () => this.generateImage());
         this.elements.sendBtn.addEventListener('click', (e) => {
         });
 
@@ -60,7 +62,7 @@ class AliciaAI {
             });
         });
 
-          document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
                 if (!this.state.isLoading) {
@@ -226,7 +228,7 @@ class AliciaAI {
             this.saveChatHistory();
         }
     }
-
+     
     displayAIResponse(markdownText) {
         const el = document.createElement('div');
         el.className = 'message ai-message';
@@ -234,7 +236,7 @@ class AliciaAI {
         const html = this.renderMarkdown(markdownText || '');
         const container = document.createElement('div');
         container.className = 'message-content';
-
+ 
         const THRESHOLD = 700; 
         if ((markdownText || '').length > THRESHOLD) {
             const short = html.substring(0, 600);
@@ -250,6 +252,7 @@ class AliciaAI {
             fullHidden.setAttribute('data-collapsed', 'false');
             fullHidden.innerHTML = html;
             container.appendChild(fullHidden);
+
             const btn = document.createElement('button');
             btn.className = 'collapse-toggle';
             btn.type = 'button';
@@ -276,6 +279,7 @@ class AliciaAI {
         this.elements.messagesWrapper.appendChild(el);
         this.scrollToBottom();
         this.state.messageCount++;
+
         this.attachCopyButtons(el);
         this.saveChatHistory();
         if (this.state.voiceEnabled) this.speakText(this.stripMarkdown(markdownText || ''));
@@ -283,28 +287,42 @@ class AliciaAI {
 
     renderMarkdown(md) {
         if (!md) return '';
+
+ 
         let text = md.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+ 
+ 
+ 
+ 
         text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (m, lang, code) => {
             const language = lang || 'text';
             const safeCode = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return `<div class="code-block"><div class="code-bar"><span class="code-lang">${language}</span><button class="copy-btn" type="button">Copy</button></div><pre><code class="language-${language}">${safeCode}</code></pre></div>`;
         });
+
         text = text.replace(/`([^`]+)`/g, (m, c) => {
             return `<code>${c}</code>`;
         });
+
         text = text.replace(/\*\*([^*]+)\*\*/g, (m, c) => {
             return `<strong>${c}</strong>`;
         });
+
         text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
         text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
         text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
         text = text.replace(/^\s*[-*] (.*)/gim, '<li>$1</li>');
         text = text.replace(/(<li>[\s\S]*?<\/li>)/gim, (m) => {
+ 
             const lis = m.replace(/\n/g, '');
             return `<ul>${lis.replace(/<\/li><ul>/g,'</li>')}</ul>`;
         });
         text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+ 
         const paragraphs = text.split(/\n{2,}/).map(p => {
+ 
             if (/^<(h1|h2|h3|ul|div|pre|blockquote|p|code|img)/i.test(p.trim())) return p;
             return `<p>${p.trim()}</p>`;
         });
@@ -314,7 +332,7 @@ class AliciaAI {
 
     stripMarkdown(md) {
         if (!md) return '';
-        return md.replace(/```[\s\S]*?```/g, '')  
+        return md.replace(/```[\s\S]*?```/g, '') 
                  .replace(/```.*$/g, '')
                  .replace(/[`*_\[\]]/g, '')
                  .replace(/\[(.*?)\]\((.*?)\)/g, '$1');
@@ -324,7 +342,7 @@ class AliciaAI {
         const blocks = container.querySelectorAll('.code-block');
         blocks.forEach(block => {
             const btn = block.querySelector('.copy-btn');
-            if (btn) return; 
+            if (btn) return;  
             const bar = document.createElement('div');
             bar.className = 'code-bar';
             const lang = block.querySelector('pre code')?.className?.replace('language-','') || 'text';
@@ -379,6 +397,62 @@ class AliciaAI {
         if (chatWrapper) chatWrapper.scrollTop = chatWrapper.scrollHeight + 200;
     }
 
+    async generateImage() {
+        const prompt = window.prompt('Describe the image you want to generate:');
+        if (!prompt) return;
+        this.hideWelcomeMessage();
+        this.appendUserMessage(`Generate image: ${prompt}`);
+        this.state.isLoading = true;
+        const loadingEl = this.appendLoadingMessage();
+        try {
+            const apiKey = 'hg_ErF1719272617189';  
+            const resp = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputs: prompt })
+            });
+            if (!resp.ok) throw new Error('Image API error');
+            const blob = await resp.blob();
+            const imageUrl = URL.createObjectURL(blob);
+            this.removeElement(loadingEl);
+            this.appendImageMessage(imageUrl, prompt);
+        } catch (err) {
+            console.error(err);
+            this.removeElement(loadingEl);
+            this.displayAIResponse('Failed to generate image.');
+        } finally {
+            this.state.isLoading = false;
+            this.saveChatHistory();
+        }
+    }
+
+    appendImageMessage(url, alt) {
+        const el = document.createElement('div');
+        el.className = 'message ai-message image-message';
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = alt;
+        img.loading = 'lazy';
+        el.appendChild(img);
+        this.elements.messagesWrapper.appendChild(el);
+        this.scrollToBottom();
+        this.state.messageCount++;
+    }
+
+    showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        const msg = document.createElement('div');
+        msg.className = 'toast-message';
+        msg.textContent = message;
+        toast.appendChild(msg);
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 340);
+        }, 3200);
+    }
+
     clearChat() {
         this.elements.messagesWrapper.innerHTML = '';
         this.state.messageCount = 0;
@@ -394,10 +468,11 @@ class AliciaAI {
     saveChatHistory() {
         const messages = Array.from(this.elements.messagesWrapper.children).map(el => {
             const isUser = el.classList.contains('user-message');
-            let content = '';
+            let content = ''; 
             const mc = el.querySelector('.message-content');
-            if (mc) content = mc.textContent || '';             
-            return { role: isUser ? 'user' : 'ai', content, model: this.state.selectedModel };
+            if (mc) content = mc.textContent || '';
+            const isImage = el.querySelector('img') !== null;
+            return { role: isUser ? 'user' : 'ai', content, isImage, model: this.state.selectedModel };
         });
         localStorage.setItem('alicia-chat-history', JSON.stringify(messages));
     }
@@ -407,7 +482,14 @@ class AliciaAI {
             const hist = JSON.parse(localStorage.getItem('alicia-chat-history') || '[]');
             if (!Array.isArray(hist) || hist.length === 0) return;
             this.hideWelcomeMessage();
-            hist.forEach(msg => {                
+            hist.forEach(msg => {
+                if (msg.isImage) {
+                    const el = document.createElement('div');
+                    el.className = 'message ai-message';
+                    const content = document.createElement('div');
+                    content.className = 'message-content small-muted';
+                    content.textContent = '[Previously generated image]';
+                    el.appendChild(content);
                     this.elements.messagesWrapper.appendChild(el);
                 } else {
                     const el = document.createElement('div');
